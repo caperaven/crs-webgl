@@ -22,7 +22,9 @@
     </style>
 </head>
 <body>
-    <crs-webgl vertex-shader="/shaders/shader.vert" fragment-shader="/shaders/shader.frag"></crs-webgl>
+    <crs-webgl vbo="/vbo/fullscreen-quad">
+        <crs-webgl-program vertex-shader="/shaders/shader.vert" fragment-shader="/shaders/shader.frag"></crs-webgl-program>
+    </crs-webgl>
 
     <script type="module" src="src/crs-webgl.js"></script>
 </body>

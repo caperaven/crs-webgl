@@ -1,12 +1,34 @@
+import "./crs-webgl-program.js";
+
 class WebGL extends HTMLElement {
     connectedCallback() {
+        this.programs = [];
+
+        this._addProgramHandler = this._addProgram.bind(this);
+
+        this.programElements = this.querySelectorAll("crs-webgl-program");
+        this.programElements.forEach(element => element.addEventListener("program-ready", this._addProgramHandler));
+
         this._initCanvas();
-        this._loadShaders();
     }
 
     disconnectedCallback() {
         this.canvas = null;
         this.gl = null;
+    }
+
+    _addProgram(event) {
+        this.programs.push(event.detail);
+
+        if (this.programs.length == this.programElements.length) {
+            this.programElements.forEach(element => {
+                element.removeEventListener("program-ready", this._addProgramHandler);
+                element.parentElement.removeChild(element)
+            });
+
+            delete this.programElements;
+            this._draw();
+        }
     }
 
     _initCanvas() {
@@ -16,82 +38,34 @@ class WebGL extends HTMLElement {
         this.appendChild(this.canvas);
 
         this.gl = this.canvas.getContext("webgl");
+        this._loadVBO();
     }
 
-    _loadShaders() {
-        const vertAttr = this.getAttribute("vertex-shader");
-        const fragAttr = this.getAttribute("fragment-shader");
-
-        let vertShader;
-        let fragShader;
-
-        Promise.all([
-            getCode(vertAttr).then(src => vertShader = compileShader(this.gl, src, this.gl.VERTEX_SHADER)),
-            getCode(fragAttr).then(src => fragShader = compileShader(this.gl, src, this.gl.FRAGMENT_SHADER))
-        ]).then(() => {
-            this.program = createProgram(this.gl, vertShader, fragShader);
-            this._draw();
-        })
+    _loadVBO() {
+        const file = `${this.getAttribute("vbo")}.js`;
+        import(file).then(module => {
+            this.vbo = module.default(this.gl);
+            this.dispatchEvent(new CustomEvent("gl-ready", {detail: this.gl}));
+        });
     }
 
     _draw() {
         this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-        // TEMP
-        const vertices = new Float32Array(
-            [
-                -0.5, -0.5,
-                0.5, -0.5,
-                0.0, 0.5
-            ]);
-        
-        https://www.youtube.com/watch?v=XNbtwyWh9HA
+        for (let program of this.programs) {
+            this.gl.useProgram(program);
 
-        var buffer = this.gl.createBuffer();
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);
+            program.color = this.gl.getUniformLocation(program, "color");
+            this.gl.uniform4fv(program.color, [0, 1, 0, 1.0]);
 
-        this.gl.useProgram(this.program);
+            program.position = this.gl.getAttribLocation(program, "position");
+            this.gl.enableVertexAttribArray(program.position);
+            this.gl.vertexAttribPointer(program.position, 2, this.gl.FLOAT, false, 0, 0);
+        }
 
-        this.program.color = this.gl.getUniformLocation(this.program, "color");
-        this.gl.uniform4fv(this.program.color, [0, 1, 0, 1.0]);
-
-        this.program.position = this.gl.getAttribLocation(this.program, "position");
-        this.gl.enableVertexAttribArray(this.program.position);
-        this.gl.vertexAttribPointer(this.program.position, 2, this.gl.FLOAT, false, 0, 0);
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, vertices.length / 2)
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, this.vbo.length)
     }
 }
-
-function getCode(path) {
-    return new Promise(resolve => fetch(path).then(result => result.text()).then(src => resolve(src)));
-}
-
-function compileShader(gl, shaderSource, shaderType) {
-    const shader = gl.createShader(shaderType);
-    gl.shaderSource(shader, shaderSource);
-    gl.compileShader(shader);
-    const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-    if (!success) {
-        throw "could not compile shader:" + gl.getShaderInfoLog(shader);
-    }
-
-    return shader;
-}
-
-function createProgram(gl, vertexShader, fragmentShader) {
-    const program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-
-    const success = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (!success) {
-        throw ("program failed to link:" + gl.getProgramInfoLog (program));
-    }
-
-    return program;
-};
 
 customElements.define("crs-webgl", WebGL);

@@ -7,5 +7,6 @@ In progress
 WebGL web component and shader development starter kit
 
 ## Links
-[Shader Fundimentals](https://webglfundamentals.org/)
+[Shader Fundimentals](https://webglfundamentals.org/)  
+[Book of Shaders](https://thebookofshaders.com/)
 

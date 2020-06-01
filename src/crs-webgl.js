@@ -55,6 +55,8 @@ class WebGL extends HTMLElement {
         requestAnimationFrame(this._drawHandler);
 
         now *= 0.001;
+        const delta = now - this._lastTime;
+        this._lastTime = now;
 
         this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
@@ -67,6 +69,12 @@ class WebGL extends HTMLElement {
 
             program.u_time = this.gl.getUniformLocation(program, "u_time");
             this.gl.uniform1f(program.u_time, now);
+
+            program.u_delta = this.gl.getUniformLocation(program, "u_delta");
+            this.gl.uniform1f(program.u_delta, delta);
+
+            program.u_resolution = this.gl.getUniformLocation(program, "u_resolution");
+            this.gl.uniform2fv(program.u_resolution, [this.canvas.width, this.canvas.height]);
 
             program.position = this.gl.getAttribLocation(program, "position");
             this.gl.enableVertexAttribArray(program.position);

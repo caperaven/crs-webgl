@@ -37,6 +37,9 @@ class WebGL extends HTMLElement {
 
     _resize() {
         this.bounds = this.canvas.getBoundingClientRect();
+
+        this.canvas.width = this.bounds.width * this.pixelRatio;
+        this.canvas.height = this.bounds.height * this.pixelRatio;
     }
 
     _mouseMove(event) {

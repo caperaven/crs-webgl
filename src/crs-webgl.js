@@ -1,3 +1,4 @@
+import {stringToColorArray} from "./utils.js";
 import "./crs-webgl-program.js";
 
 class WebGL extends HTMLElement {
@@ -15,6 +16,9 @@ class WebGL extends HTMLElement {
 
         this.programElements = this.querySelectorAll("crs-webgl-program");
         this.programElements.forEach(element => element.addEventListener("program-ready", this._addProgramHandler));
+
+        this.background = stringToColorArray(this.getAttribute("background") || "1.0, 1.0, 1.0, 1.0");
+        this.color = stringToColorArray(this.getAttribute("foreground") || "1.0, 0.0, 0.0, 1.0");
 
         this._initCanvas();
     }
@@ -84,14 +88,14 @@ class WebGL extends HTMLElement {
         const delta = now - this._lastTime;
         this._lastTime = now;
 
-        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.gl.clearColor(this.background[0], this.background[1], this.background[2], this.background[3]);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
         for (let program of this.programs) {
             this.gl.useProgram(program);
 
             program.u_color = this.gl.getUniformLocation(program, "u_color");
-            this.gl.uniform4fv(program.u_color, [0, 1, 0, 1.0]);
+            this.gl.uniform4fv(program.u_color, this.color);
 
             program.u_mouse = this.gl.getUniformLocation(program, "u_mouse");
             this.gl.uniform2fv(program.u_mouse, [this.mouse.x, this.mouse.y]);
